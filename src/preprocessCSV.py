@@ -82,11 +82,12 @@ def compileText(dataframe):
     else:
         for i in range(len(dataframe)):
             classification.append(0)
-    combined = dataframe['description'].fillna("") + " " + dataframe['first_commit_message'] + " " + dataframe['last_commit_message']
     compiled = pd.DataFrame ({
         "First_Author_Type": dataframe['first_commit_author_type'],
         "Last_Author_Type": dataframe['last_commit_author_type'],
-        "Commit_Text" : combined,
+        "description": dataframe['description'],
+        "first_commit_message": dataframe['first_commit_message'],
+        "last_commit_message": dataframe['last_commit_message'],
         "Author":classification
     })
     return compiled
