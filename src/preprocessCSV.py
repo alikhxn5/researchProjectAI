@@ -1,8 +1,11 @@
+from operator import truediv
+
 import pandas as pd
 import nltk
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from nltk.stem import PorterStemmer
+BUZZ_WORDS = {"hey", "no"}
 
 
 def main():
@@ -21,6 +24,44 @@ def main():
     print(data["Clean_Text"][0])
     print(data[["Clean_Text", "Author"]].head())
 
+
+#'Buzzword' checker. Essentially just checks for buzzwords
+def buzzword(string):
+    s = string.lower()
+
+    with open("ai_commit_markers.txt", "r") as file:
+        for phrase in file:
+            if phrase.strip().lower() in s:
+                return True
+        return False
+
+
+
+
+def preclassify(input_matrix):
+
+    # maybe if we can figure out an id we can have it print list of rows that were reclassified too.
+
+    to_user,to_bot,to_userbot = 0
+    for row in input_matrix:
+        if buzzword(row["first_commit_message"]) is True and buzzword(row["last_commit_message"]) is True:
+            row["Author"] = 1
+            to_bot += 1
+        elif buzzword(row["first_commit_message"]) is False and buzzword(row["last_commit_message"]) is True:
+            row["Author"] = 2
+            to_userbot += 1
+        elif buzzword(row["first_commit_message"]) is False and buzzword(row["last_commit_message"]) is False:
+            row["Author"] = 0
+            to_user += 1
+
+    print("Num changed to user",to_user)
+    print("Num changed to bot", to_bot)
+    print("Num changed to user then bot", to_userbot)
+    # Note that that that means cases where first is True and last is false is the default value
+    # our code thus also assumes that first being true never happens so we will need to find a solution
+     # for this whether to keep it as its original or to do something else with it
+
+    return input
 
 def join_tokens(data):
     data["Clean_Text"] = data["Tokens"].apply(lambda tokens: " ".join(tokens))
