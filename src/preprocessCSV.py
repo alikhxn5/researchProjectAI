@@ -1,18 +1,31 @@
+import csv
 from operator import truediv
 
 import pandas as pd
+import random
 import nltk
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from nltk.stem import PorterStemmer
 BUZZ_WORDS = {"hey", "no"}
-
+START = 0
+USERS = 6000
+SEED = 7 # SUI
 
 def main():
-    bots = compileText(readCSV("../Bots.csv"))
-    users = compileText(readCSV("../RandomUser.csv"))
+    # Load in the data from the datasets and get a random sample of users
+    random.seed(SEED)
+    bots = compileText(readCSV("Bots.csv"), START)
+    fullUsers = compileText(readCSV("randomUser50k.csv"), len(bots) + 10)
+    users = fullUsers.sample(n = USERS, random_state = SEED) #SUI
+    users = replaceUsed(users, fullUsers)
+    writeUsedID(users)
     data = combine_data(bots, users)
+
+
+    # Data preprocessing
     print(data.shape)
+    data = preclassify(data)
     data = remove_duplicates(data)
     data = drop_author_columns(data)
     data = tokenize_text(data)
@@ -27,41 +40,50 @@ def main():
 
 #'Buzzword' checker. Essentially just checks for buzzwords
 def buzzword(string):
-    s = string.lower()
+    s = str(string).lower()
+
+    if not s.isascii():
+        return True
 
     with open("ai_commit_markers.txt", "r") as file:
-        for phrase in file:
+        phrases = file.readlines()
+        for phrase in phrases:
             if phrase.strip().lower() in s:
                 return True
         return False
 
-
-
-
 def preclassify(input_matrix):
 
-    # maybe if we can figure out an id we can have it print list of rows that were reclassified too.
+    reclassified = []
+    to_user = to_bot = to_userbot = 0
 
-    to_user,to_bot,to_userbot = 0
-    for row in input_matrix:
-        if buzzword(row["first_commit_message"]) is True and buzzword(row["last_commit_message"]) is True:
-            row["Author"] = 1
-            to_bot += 1
-        elif buzzword(row["first_commit_message"]) is False and buzzword(row["last_commit_message"]) is True:
-            row["Author"] = 2
-            to_userbot += 1
-        elif buzzword(row["first_commit_message"]) is False and buzzword(row["last_commit_message"]) is False:
-            row["Author"] = 0
-            to_user += 1
+    for index in input_matrix.index:
+        first = buzzword(str(input_matrix.loc[index,"first_commit_message"]))
+        last = buzzword(str(input_matrix.loc[index,"last_commit_message"]))
+        currentClass = input_matrix.loc[index,"Author"]
+
+        if first and last:
+            if currentClass != 1:
+                input_matrix.loc[index,"Author"] = 1
+                reclassified.append(input_matrix.loc[index, "ID"])
+                to_bot += 1
+        elif not first and last :
+            if currentClass != 2:
+                input_matrix.loc[index,"Author"] = 2
+                reclassified.append(input_matrix.loc[index, "ID"])
+                to_userbot += 1
+        elif not first and not last:
+            if currentClass != 0:
+                input_matrix.loc[index,"Author"] = 0
+                reclassified.append(input_matrix.loc[index, "ID"])
+                to_user += 1
 
     print("Num changed to user",to_user)
     print("Num changed to bot", to_bot)
     print("Num changed to user then bot", to_userbot)
-    # Note that that that means cases where first is True and last is false is the default value
-    # our code thus also assumes that first being true never happens so we will need to find a solution
-     # for this whether to keep it as its original or to do something else with it
+    print("Reclassified IDs", reclassified)
 
-    return input
+    return input_matrix
 
 def join_tokens(data):
     data["Clean_Text"] = data["Tokens"].apply(lambda tokens: " ".join(tokens))
@@ -114,7 +136,7 @@ def readCSV(file):
     return df
 
 
-def compileText(dataframe):
+def compileText(dataframe, MIN):
 
     classification = []
     if dataframe.iloc[0,3] == 'Bot':
@@ -123,7 +145,9 @@ def compileText(dataframe):
     else:
         for i in range(len(dataframe)):
             classification.append(0)
+
     compiled = pd.DataFrame ({
+        "ID" : range(MIN, MIN + len(dataframe)),
         "First_Author_Type": dataframe['first_commit_author_type'],
         "Last_Author_Type": dataframe['last_commit_author_type'],
         "description": dataframe['description'],
@@ -131,7 +155,40 @@ def compileText(dataframe):
         "last_commit_message": dataframe['last_commit_message'],
         "Author":classification
     })
+
     return compiled
+
+def writeUsedID(dataframe):
+    with open("used_id.txt", 'a') as file:
+        writer = csv.writer(file)
+        for id in dataframe["ID"]:
+            writer.writerow([id])
+
+def replaceUsed(dataframe, fullUsers):
+    dupes = []
+    with open("used_id.txt", 'r') as file:
+        used = file.readlines()
+        if len(used) == 0:
+            return dataframe
+
+        usedIndex = [int(line) for line in used if line.strip() !=""]
+
+        for id in dataframe["ID"]:
+            found = False
+            if id in usedIndex:
+                while not found:
+                    newIndex = random.randint(0, len(fullUsers)-1)
+                    newID = fullUsers["ID"].iloc[newIndex]
+
+                    if newID not in usedIndex and newID not in dataframe["ID"].values:
+                        found = True
+                        dataframe = pd.concat([dataframe,fullUsers.iloc[[newIndex]]], ignore_index=True)
+                        dupes.append(id)
+
+    for dupe in dupes:
+        dataframe.drop(dataframe[dataframe["ID"] == dupe].index, inplace=True)
+
+    return dataframe
 
 if __name__ == "__main__":
     main()

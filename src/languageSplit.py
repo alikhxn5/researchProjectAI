@@ -5,7 +5,7 @@ import pandas as pd
 from lingua import Language, LanguageDetectorBuilder
 
 PROJECT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INPUT_FILES = ["Bots.csv", "RandomUser.csv"]
+INPUT_FILES = ["Bots.csv", "randomUser50k.csv"]
 
 BOXES = ["description", "first_commit_message", "last_commit_message"]
 
