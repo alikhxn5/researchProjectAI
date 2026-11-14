@@ -27,7 +27,8 @@ def main():
     print(data.shape)
     data = preclassify(data)
     data = remove_duplicates(data)
-    data = drop_author_columns(data)
+    data = combine_text(data)
+    data = drop_old_columns(data)
     data = tokenize_text(data)
     data = lowercase_tokens(data)
     data = remove_stop_words(data)
@@ -111,7 +112,7 @@ def lowercase_tokens(data):
 
 def tokenize_text(data):
     nltk.download("punkt_tab")   # tokenizer data, downloads the first time only
-    data["Tokens"] = data["Commit_Text"].apply(word_tokenize)
+    data["Tokens"] = data["Text"].apply(word_tokenize)
     return data
 
 
@@ -120,14 +121,21 @@ def combine_data(bots, users):
     data = pd.concat([bots, users], ignore_index=True)
     return data
 
+def combine_text(data):
+    data["Text"] = (
+        "[DESCRIPTION] " + data["description"].fillna("") +
+        "[FIRST]" + data["first_commit_message"].fillna("") +
+        "[LAST]" + data["last_commit_message"].fillna("")
+    )
+    return data
 
 def remove_duplicates(data):
-    data = data.drop_duplicates(subset="Commit_Text")
+    data = data.drop_duplicates(subset=["ID"])
     return data
 
 
-def drop_author_columns(data):
-    data = data.drop(columns=["First_Author_Type", "Last_Author_Type"])
+def drop_old_columns(data):
+    data = data.drop(columns=["First_Author_Type", "Last_Author_Type", "description", "first_commit_message", "last_commit_message"])
     return data
 
 
