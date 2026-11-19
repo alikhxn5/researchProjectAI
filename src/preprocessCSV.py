@@ -38,6 +38,10 @@ def main():
     print(data["Clean_Text"][0])
     print(data[["Clean_Text", "Author"]].head())
 
+    return data
+
+
+
 
 #'Buzzword' checker. Essentially just checks for buzzwords
 def buzzword(string):
@@ -200,3 +204,6 @@ def replaceUsed(dataframe, fullUsers):
 
 if __name__ == "__main__":
     main()
+
+
+
