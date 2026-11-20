@@ -4,6 +4,7 @@ from operator import truediv
 import pandas as pd
 import random
 import nltk
+from nltk import data
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from nltk.stem import PorterStemmer
@@ -15,8 +16,8 @@ SEED = 7 # SUI
 def main():
     # Load in the data from the datasets and get a random sample of users
     random.seed(SEED)
-    bots = compileText(readCSV("Bots.csv"), START)
-    fullUsers = compileText(readCSV("randomUser50k.csv"), len(bots) + 10)
+    bots = compileText(readCSV("/Users/justinho/Desktop/Artificial Intellegence/PycharmProjects/researchProjectAI/Bots.csv"), START)
+    fullUsers = compileText(readCSV("/Users/justinho/Desktop/Artificial Intellegence/PycharmProjects/researchProjectAI/randomUser50k.csv"), len(bots) + 10)
     users = fullUsers.sample(n = USERS, random_state = SEED) #SUI
     users = replaceUsed(users, fullUsers)
     writeUsedID(users)
@@ -27,7 +28,7 @@ def main():
     print(data.shape)
     data = preclassify(data)
     data = remove_duplicates(data)
-    data = combine_text(data)
+    #data = combine_text(data)
     data = drop_old_columns(data)
     data = tokenize_text(data)
     data = lowercase_tokens(data)
@@ -35,8 +36,8 @@ def main():
     data = remove_punctuation(data)
     data = stem_tokens(data)
     data = join_tokens(data)
-    print(data["Clean_Text"][0])
-    print(data[["Clean_Text", "Author"]].head())
+    #print(data["Clean_Text"][0])
+    #print(data[["Clean_Text", "Author"]].head())
 
     return data
 
@@ -50,7 +51,7 @@ def buzzword(string):
     if not s.isascii():
         return True
 
-    with open("ai_commit_markers.txt", "r") as file:
+    with open("/Users/justinho/Desktop/Artificial Intellegence/PycharmProjects/researchProjectAI/ai_commit_markers.txt", "r") as file:
         phrases = file.readlines()
         for phrase in phrases:
             if phrase.strip().lower() in s:
@@ -91,32 +92,46 @@ def preclassify(input_matrix):
     return input_matrix
 
 def join_tokens(data):
-    data["Clean_Text"] = data["Tokens"].apply(lambda tokens: " ".join(tokens))
+    #data["Clean_Text"] = data["Tokens"].apply(lambda tokens: " ".join(tokens))
+    data["description_token"] = data["description_token"].apply(lambda tokens: " ".join(tokens))
+    data["first_commit_token"] = data["first_commit_token"].apply(lambda tokens: " ".join(tokens))
+    data["last_commit_token"] = data["last_commit_token"].apply(lambda tokens: " ".join(tokens))
     return data
 
 
 def stem_tokens(data):
     stemmer = PorterStemmer()
-    data["Tokens"] = data["Tokens"].apply(lambda tokens: [stemmer.stem(t) for t in tokens])
+    data["description_token"] = data["description_token"].apply(lambda tokens: [stemmer.stem(t) for t in tokens])
+    data["first_commit_token"] = data["first_commit_token"].apply(lambda tokens: [stemmer.stem(t) for t in tokens])
+    data["last_commit_token"] = data["last_commit_token"].apply(lambda tokens: [stemmer.stem(t) for t in tokens])
     return data
 
 
 def remove_punctuation(data):
-    data["Tokens"] = data["Tokens"].apply(lambda tokens: [t for t in tokens if any(c.isalnum() for c in t)])
+    data["description_token"] = data["description_token"].apply(lambda tokens: [t for t in tokens if any(c.isalnum() for c in t)])
+    data["first_commit_token"] = data["first_commit_token"].apply(lambda tokens: [t for t in tokens if any(c.isalnum() for c in t)])
+    data["last_commit_token"] = data["last_commit_token"].apply(lambda tokens: [t for t in tokens if any(c.isalnum() for c in t)])
     return data
 
 def remove_stop_words(data):
-    data["Tokens"] = data["Tokens"].apply(lambda tokens: [t for t in tokens if t not in ENGLISH_STOP_WORDS])
+    data["description_token"] = data["description_token"].apply(lambda tokens: [t for t in tokens if t not in ENGLISH_STOP_WORDS])
+    data["first_commit_token"] = data["first_commit_token"].apply(lambda tokens: [t for t in tokens if t not in ENGLISH_STOP_WORDS])
+    data["last_commit_token"] = data["last_commit_token"].apply(lambda tokens: [t for t in tokens if t not in ENGLISH_STOP_WORDS])
     return data
 
 def lowercase_tokens(data):
-    data["Tokens"] = data["Tokens"].apply(lambda tokens: [t.lower() for t in tokens])
+    data["description_token"] = data["description_token"].apply(lambda tokens: [t.lower() for t in tokens])
+    data["first_commit_token"] = data["first_commit_token"].apply(lambda tokens: [t.lower() for t in tokens])
+    data["last_commit_token"] = data["last_commit_token"].apply(lambda tokens: [t.lower() for t in tokens])
     return data
 
 
 def tokenize_text(data):
     nltk.download("punkt_tab")   # tokenizer data, downloads the first time only
-    data["Tokens"] = data["Text"].apply(word_tokenize)
+    #data["Tokens"] = data["Text"].apply(word_tokenize)
+    data["description_token"] = data["description"].apply(word_tokenize)
+    data["first_commit_token"] = data["first_commit_message"].apply(word_tokenize)
+    data["last_commit_token"] = data["last_commit_message"].apply(word_tokenize)
     return data
 
 
@@ -127,9 +142,9 @@ def combine_data(bots, users):
 
 def combine_text(data):
     data["Text"] = (
-        "[DESCRIPTION] " + data["description"].fillna("") +
-        "[FIRST]" + data["first_commit_message"].fillna("") +
-        "[LAST]" + data["last_commit_message"].fillna("")
+        data["description"].fillna("") +
+        data["first_commit_message"].fillna("") +
+        data["last_commit_message"].fillna("")
     )
     return data
 
@@ -139,7 +154,7 @@ def remove_duplicates(data):
 
 
 def drop_old_columns(data):
-    data = data.drop(columns=["First_Author_Type", "Last_Author_Type", "description", "first_commit_message", "last_commit_message"])
+    data = data.drop(columns=["First_Author_Type", "Last_Author_Type",]) # "description", "first_commit_message", "last_commit_message"])
     return data
 
 
@@ -168,6 +183,9 @@ def compileText(dataframe, MIN):
         "Author":classification
     })
 
+    compiled["description"] = compiled["description"].fillna("").astype(str)
+    compiled["first_commit_message"] = compiled["first_commit_message"].fillna("").astype(str)
+    compiled["last_commit_message"] = compiled["last_commit_message"].fillna("").astype(str)
     return compiled
 
 def writeUsedID(dataframe):
@@ -178,7 +196,7 @@ def writeUsedID(dataframe):
 
 def replaceUsed(dataframe, fullUsers):
     dupes = []
-    with open("used_id.txt", 'r') as file:
+    with open("/Users/justinho/Desktop/Artificial Intellegence/PycharmProjects/researchProjectAI/used_id.txt", 'r') as file:
         used = file.readlines()
         if len(used) == 0:
             return dataframe
