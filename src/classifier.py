@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import preprocessCSV
 import languageSplit
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.absent(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LABEL_NAMES = {0: "user", 1: "bot", 2: "user_then_bot"}
 language_cache = {}
@@ -136,7 +136,7 @@ def run_classifier(data, run, subset_name, run_folder, log_rows):
 
 def main():
     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    results_folder = os.path.join(PROJECT_FOLDER, "results", stamp)
+    results_folder = os.path.join(PROJECT_ROOT, "results", stamp)
     os.makedirs(results_folder, exist_ok=True)
     log_rows = []
     for i in range(8):
@@ -146,8 +146,8 @@ def main():
         run_folder = os.path.join(results_folder, "run_" + str(i+1))
         os.makedirs(run_folder, exist_ok=True)
 
-        print("Run", i+ 1, "| all rows")
-        run_classifier(data, i+1, "all", run_folder, log_rows)
+        #print("Run", i+ 1, "| all rows")
+        #run_classifier(data, i+1, "all", run_folder, log_rows)
 
         english = data[data["is_english"]]
         print("Run", i + 1, "| english only")
